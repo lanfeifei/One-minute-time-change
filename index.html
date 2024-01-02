@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一分钟变天</title>
+  <style>
+    @font-face {
+      font-family: 'Ark-pixel-12px-monospaced-zh_cn'; /* 与CSS中的保持一致 */
+      src: url('ark-pixel-12px-monospaced-zh_cn.ttf') format('truetype');
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Ark-pixel-12px-monospaced-zh_cn', sans-serif; /* 使用自定义字体 */
+      background-color: black;
+      overflow: hidden;
+      zoom: 110%;
+    }
+
+    /* 日期颜色选择框的样式规则 */
+    #date-color {
+    height: 19px; /* 调整日期颜色选择框的高度 */
+    }
+
+    /* 时间颜色选择框的样式规则 */
+    #time-color {
+    height: 19px; /* 调整时间颜色选择框的高度 */
+    }
+
+    button[type="button"] {
+      margin-top: 1px;
+    }
+
+
+    .custom-button {
+      position: absolute;
+      top: 0px;
+      left: 366px;
+    }
+
+    #background-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #background-container img, 
+    #background-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    label[for="start-date"],
+    label[for="start-time"],
+    label[for="end-date"],
+    label[for="end-time"],
+    label[for="file-input"],
+    label[for="date-color"],
+    label[for="time-color"],
+    label[for="font-file"] {
+      color: #fee60a; /* 选择您想要的颜色 */
+    }
+
+    #date-container {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #00BFFF; /* 科技蓝颜色 */
+      font-size: 80px;
+      text-shadow: 0 0 10px rgba(0, 191, 255, 0.8); /* 散光效果 */
+    }
+
+    #clock-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 200px;
+      color: transparent;
+      text-shadow: 0 0 5px rgba(255, 165, 0, 0.8);
+      animation: neon-glow 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes neon-glow {
+      0% {
+        text-shadow: 0 0 5px rgba(255, 165, 0, 0.8);
+      }
+      100% {
+        text-shadow: 0 0 10px rgba(255, 165, 0, 0.8), 0 0 15px rgba(255, 165, 0, 0.8), 0 0 20px rgba(255, 165, 0, 0.8);
+      }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="background-container"></div> <!-- 新的背景容器 -->
+
+  <div id="date-container">
+    <div id="date"></div>
+  </div>
+  <div id="clock-container">
+    <div id="clock">23:59:00</div>
+  </div>
+  
+  <label for="start-date">起始日期：</label>
+  <input type="date" id="start-date">
+  <label for="start-time">起始时间：</label>
+  <input type="time" id="start-time">
+
+  <br>
+
+  <label for="end-date">结束日期：</label>
+  <input type="date" id="end-date">
+  <label for="end-time">结束时间：</label>
+  <input type="time" id="end-time">
+
+  <button type="button" onclick="updateStartAndEndDate()">更新起始和结束日期和时间</button>
+  <button type="button" onclick="updateToCurrentDateTime()">当前时间</button>
+
+  
+
+  <br>
+
+  <!-- 添加这些输入字段以允许用户自定义颜色 -->
+  <label for="date-color">日期颜色：</label>
+  <input type="color" id="date-color" value="#00BFFF">
+
+  <label for="time-color">时间颜色：</label>
+  <input type="color" id="time-color" value="#FFA500">
+
+  <br>
+
+  <label for="file-input">更改背景：</label>
+  <input type="file" id="file-input" accept="image/*, video/*">
+
+  <br>
+
+  <!-- 字体文件上传 -->
+  <label for="font-file">更改字体：</label>
+  <input type="file" id="font-file" accept=".ttf, .otf">
+
+  <script>
+    window.addEventListener("load", function() {
+      handleFileUpload(); 
+      toggleButtonsVisibility();
+    });
+
+    var startDate = new Date(); // 初始日期和时间
+    startDate.setFullYear(2023, 11, 31);
+    startDate.setHours(23, 59, 0);
+
+    var endDate = new Date(); // 结束日期和时间
+    endDate.setFullYear(2024, 0, 1);
+    endDate.setHours(0, 0, 0);
+
+    var transitionStarted = false;
+
+    function updateTime() {
+      var year = startDate.getFullYear();
+      var month = formatTime(startDate.getMonth() + 1);
+      var day = formatTime(startDate.getDate());
+      var hours = formatTime(startDate.getHours());
+      var minutes = formatTime(startDate.getMinutes());
+      var seconds = formatTime(startDate.getSeconds());
+      var timeString = hours + ":" + minutes + ":" + seconds;
+
+      startDate.setSeconds(startDate.getSeconds() + 1);
+
+      if (!transitionStarted && startDate > endDate) {
+        transitionStarted = true;
+        setTimeout(function() {
+          startDate = new Date(endDate); // 直接将初始日期和时间设为结束日期和时间
+          transitionStarted = false;
+        }, 60000); // 等待一分钟后将初始日期和时间设为结束日期和时间
+      }
+
+      document.getElementById("date").textContent = year + "-" + month + "-" + day;
+      document.getElementById("clock").textContent = timeString;
+
+      // 自定义日期和时间的颜色
+      document.getElementById("date").textContent = year + "-" + month + "-" + day;
+      document.getElementById("date").style.color = document.getElementById("date-color").value;
+
+      document.getElementById("clock").textContent = timeString;
+      document.getElementById("clock").style.color = document.getElementById("time-color").value;
+    }
+
+    function formatTime(time) {
+      return time < 10 ? "0" + time : time;
+    }
+
+    function updateStartAndEndDate() {
+      var startDateInput = document.getElementById("start-date").value;
+      var startTimeInput = document.getElementById("start-time").value;
+      var endDateInput = document.getElementById("end-date").value;
+      var endTimeInput = document.getElementById("end-time").value;
+
+      var startDateParts = startDateInput.split("-");
+      var startTimeParts = startTimeInput.split(":");
+      var endDateParts = endDateInput.split("-");
+      var endTimeParts = endTimeInput.split(":");
+
+      var startYear = parseInt(startDateParts[0]);
+      var startMonth = parseInt(startDateParts[1]) - 1;
+      var startDay = parseInt(startDateParts[2]);
+      var startHours = parseInt(startTimeParts[0]);
+      var startMinutes = parseInt(startTimeParts[1]);
+      var startSeconds = parseInt(startTimeParts[2] || 0);
+
+      var endYear = parseInt(endDateParts[0]);
+      var endMonth = parseInt(endDateParts[1]) - 1;
+      var endDay = parseInt(endDateParts[2]);
+      var endHours = parseInt(endTimeParts[0]);
+      var endMinutes = parseInt(endTimeParts[1]);
+      var endSeconds = parseInt(endTimeParts[2] || 0);
+
+      startDate = new Date(startYear, startMonth, startDay, startHours, startMinutes, startSeconds);
+      endDate = new Date(endYear, endMonth, endDay, endHours, endMinutes, endSeconds);
+      transitionStarted = false; // 重置过渡状态
+
+      // 设置自定义颜色
+      document.getElementById("date").style.color = document.getElementById("date-color").value;
+      document.getElementById("clock").style.color = document.getElementById("time-color").value;
+
+      transitionStarted = false; // 重置过渡状态
+    }
+
+    setInterval(updateTime, 1000);
+
+    var buttons = document.getElementsByTagName("button");
+    var hintButton = document.createElement("button");
+    hintButton.textContent = "提示";
+    document.body.appendChild(hintButton);
+
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "F11") {
+        toggleButtonsVisibility();
+      }
+    });
+
+    hintButton.addEventListener("click", function() {
+      toggleButtonsVisibility();
+    });
+
+    function toggleButtonsVisibility() {
+  var labels = document.querySelectorAll("label");
+  if (labels[0].style.display === "none") {
+    for (var i = 0; i < labels.length; i++) {
+      labels[i].style.display = "inline-block";
+    }
+
+    var buttons = document.getElementsByTagName("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].style.display = "inline-block";
+    }
+
+    var inputs = document.getElementsByTagName("input");
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].style.display = "inline-block";
+    }
+  } else {
+    for (var i = 0; i < labels.length; i++) {
+      labels[i].style.display = "none";
+    }
+
+    var buttons = document.getElementsByTagName("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].style.display = "none";
+    }
+
+    var inputs = document.getElementsByTagName("input");
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].style.display = "none";
+    }
+  }
+}
+
+
+    toggleButtonsVisibility();
+
+    hintButton.textContent = "☢时间设置好后一分钟就会变化☢按下F11后隐藏或显示按钮☢时间更改后请F5刷新页面再使用";
+    hintButton.className = "custom-button";
+
+    var showCurrentTime = false;  // 用于标记是否显示当前时间
+
+    function updateToCurrentDateTime() {
+      showCurrentTime = true;  // 设置为显示当前时间
+      getCurrentDateTime();  // 调用函数更新为当前时间
+    }
+
+    function getCurrentDateTime() {
+      var currentDate = new Date();
+      var year = currentDate.getFullYear();
+      var month = formatTime(currentDate.getMonth() + 1);
+      var day = formatTime(currentDate.getDate());
+      var hours = formatTime(currentDate.getHours());
+      var minutes = formatTime(currentDate.getMinutes());
+      var seconds = showCurrentTime ? "00" : formatTime(currentDate.getSeconds());
+      var currentDateTimeString = year + "-" + month + "-" + day;
+      var currentTimeString = hours + ":" + minutes + ":" + seconds;
+
+      // 更新页面元素的内容
+      document.getElementById("date").textContent = currentDateTimeString;
+      document.getElementById("clock").textContent = currentTimeString;
+
+      if (showCurrentTime) {
+        // 如果需要显示当前时间，则清空原有设定的时间
+        startDate = new Date();
+        showCurrentTime = false;  // 设置为不再显示当前时间
+      }
+    }
+
+    setInterval(function () {
+      updateTime();  // 原有的更新时间的逻辑
+    }, 1000);  // 每隔1秒更新一次原有的时间
+
+
+// 动态更新背景
+function handleFileUpload() {
+  var fileInput = document.getElementById('file-input');
+  var backgroundContainer = document.getElementById('background-container');
+
+  fileInput.addEventListener('change', function (event) {
+    var file = event.target.files[0];
+
+    if (file) {
+      var fileType = file.type.split('/')[0];
+      var reader = new FileReader();
+
+  reader.onload = function (e) {
+    if (fileType === 'image') {
+      backgroundContainer.innerHTML = ''; // 清空背景容器
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      backgroundContainer.appendChild(img);
+    } else if (fileType === 'video') {
+      backgroundContainer.innerHTML = ''; // 清空背景容器
+      var video = document.createElement('video');
+      video.src = e.target.result;
+      video.autoplay = true;
+      video.loop = true;
+      video.muted = true; // 如果需要静音，请取消注释此行
+      backgroundContainer.appendChild(video);
+      }
+    };
+
+
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+// 新增处理上传字体文件的函数
+  function handleFontUpload() {
+    var fontFileInput = document.getElementById('font-file');
+    fontFileInput.addEventListener('change', function (event) {
+      var fontFile = event.target.files[0];
+
+      if (fontFile) {
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+          var fontUrl = e.target.result;
+          applyCustomFont(fontUrl);
+        };
+
+        reader.readAsDataURL(fontFile);
+      }
+    });
+  }
+
+// 新增应用自定义字体的函数
+  function applyCustomFont(fontUrl) {
+      var fontFace = new FontFace('custom-font', 'url(' + fontUrl + ')');
+      fontFace.load().then(function (loadedFont) {
+       document.fonts.add(loadedFont);
+        document.body.style.fontFamily = 'custom-font, sans-serif';
+     });
+  }
+
+// 调用函数以初始化字体文件上传处理
+handleFontUpload();
+
+// 调用函数以初始化文件输入处理
+handleFileUpload();
+
+// 监听文件的选择
+document.getElementById('file-input').addEventListener('change', handleFileUpload);
+
+  </script>
+</body>
+</html>
